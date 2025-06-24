@@ -1,0 +1,14 @@
+
+cd bigdataengineering/docker-bde
+docker compose build
+// run
+docker compose exec -it app bash
+
+cd /shared/docker-bde/project
+
+python3 manage.py runserver 0.0.0.0:8000
+
+// jupyter notebook --no-browser --ip=0.0.0.0
+
+
+
