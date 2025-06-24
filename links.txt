@@ -1,0 +1,3 @@
+https://github.com/BigDataAnalyticsGroup/bigdataengineering/blob/master/INSTALL.md
+
+https://sqliteviewer.app/#/db.sqlite3/table/django_migrations/
