@@ -152,7 +152,7 @@ class StudentTasksTests(TestCase):
     # Task 2
     # change api.submit_post to adjust the fame profile of the user if he/she submits a post with a negative
     # truth rating
-    def arttest_T2a(self):  # implemented and tested
+    def test_T2a(self):  # implemented and tested
         # If the expertise area is already contained in the user’s fame profile, lower the fame to the next
         # possible level.
 
@@ -197,7 +197,7 @@ class StudentTasksTests(TestCase):
         # the new fame level for this user must actually be the next lower fame level:
         self.assertTrue(old_fame_level.get_next_lower_fame_level() == new_fame_level)
 
-    def arttest_T2b(self):  # implemented and tested
+    def test_T2b(self):  # implemented and tested
         # If the expertise area is not contained, simply add an entry in the user’s fame profile with fame
         # level “Confuser”.
 
@@ -308,21 +308,21 @@ class StudentTasksTests(TestCase):
 
         return user
 
-    def arttest_T2c_1(self):  # implemented and tested
+    def test_T2c_1(self):  # implemented and tested
         self._user_is_banned_test()
 
-    def arttest_T2c_2(self):  # implemented and tested
+    def test_T2c_2(self):  # implemented and tested
         # logging out the user if he/she sends another GET request,
         # call the endpoint to check whether it logs out the user
         self._user_is_banned_test(use_DRF_endpoint=True)
 
-    def arttest_T2c_3(self):  # implemented and tested
+    def test_T2c_3(self):  # implemented and tested
         # disallowing him/her to ever login again.
         user = self._user_is_banned_test()
         login = self.client.login(email=user.email, password="test")
         self.assertFalse(login)
 
-    def arttest_T2c_4(self):  # implemented and tested
+    def test_T2c_4(self):  # implemented and tested
         # unpublish all her/his posts (without deleting them from the database)
         user = self._user_is_banned_test()
 

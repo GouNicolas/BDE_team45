@@ -95,6 +95,65 @@ def unfollow(user: SocialNetworkUsers, user_to_unfollow: SocialNetworkUsers):
     user.save()
     return {"unfollowed": True}
 
+# functions used for T1 and T2
+def should_publish_post(user, expertise_area):
+    """
+    Check if a post should be published based on the user's fame profile.
+    Do not publish posts that have an expertise area marked negative in the user's fame profile.
+    """
+    fame_entry = user.fame_set.filter(expertise_area=expertise_area).first()
+    if fame_entry and fame_entry.fame_level.numeric_value < 0:
+        return False
+    return True
+
+
+def adjust_fame_profile(user, expertise_area, truth_rating):
+    """
+    Adjust the fame profile of a user based on the truth rating of a post.
+    - If the expertise area is already in the user's fame profile, lower the fame level
+    - If the expertise area is not in the fame profile, add it with the "Confuser" fame level
+    - If the fame level cannot be lowered further, ban the user and unpublish all their posts
+    """
+    from fame.models import FameLevels, Fame
+    # truth rating shouldn't be None
+    if truth_rating and truth_rating.numeric_value < 0:
+        fame_entry = user.fame_set.filter(expertise_area=expertise_area).first()
+        
+        if fame_entry:
+            # Lower the fame level to the next possible level
+            lower_fame_level = FameLevels.objects.filter(
+                numeric_value__lt=fame_entry.fame_level.numeric_value
+            ).order_by("-numeric_value").first()
+
+            if lower_fame_level:
+                fame_entry.fame_level = lower_fame_level
+                fame_entry.save()
+            else:
+                # Ban the user if fame level cannot be lowered further
+                ban_user(user)
+        else:
+            # Add a new fame entry with "Confuser" fame level
+            confuser_level = FameLevels.objects.filter(name="Confuser").first()
+            Fame.objects.create(
+                user=user, expertise_area=expertise_area, fame_level=confuser_level
+            )
+
+
+def ban_user(user):
+    """
+    Ban a user from the social network:
+    - Set `is_active` to False.
+    - Log out the user if logged in.
+    - Unpublish all their posts.
+    """
+    user.is_active = False
+    user.save()
+
+    # Unpublish all posts by the user
+    user.posts_set.update(published=False)
+    
+# and of functions used for T1 and T2
+
 
 def submit_post(
     user: SocialNetworkUsers,
@@ -118,33 +177,27 @@ def submit_post(
     )
 
     # classify the content into expertise areas:
-    # only publish the post if none of the expertise areas contains bullshit:
     _at_least_one_expertise_area_contains_bullshit, _expertise_areas = (
         post.determine_expertise_areas_and_truth_ratings()
     )
+    
+    # Determine if post should be published based on content analysis and user's fame profile
     post.published = not _at_least_one_expertise_area_contains_bullshit
+    
+    # T1: Check if post should be published based on user's fame profile
+    if post.published:  # Only check fame if content is not bullshit
+        for epa in _expertise_areas:
+            if not should_publish_post(user, epa["expertise_area"]):
+                post.published = False
+                break
 
+    # T2: Adjust fame profile based on truth ratings
+    for epa in _expertise_areas:
+        adjust_fame_profile(user, epa["expertise_area"], epa["truth_rating"])
 
-    # Check user's fame profile for negative fame in expertise areas:
-    negative_fame_expertise_areas = Fame.objects.filter(
-        user=user,
-        fame_level__numeric_value__lt=0,
-    ).values_list("expertise_area", flat=True)
-
-    # Determine if the post should be published:
-    post.published = (
-        not _at_least_one_expertise_area_contains_bullshit
-        and not any(
-            epa["expertise_area"].id in negative_fame_expertise_areas
-            for epa in _expertise_areas
-        )
-    )
-
-    redirect_to_logout = False
-
-    # Check if the user is banned and should be logged out:
-    if user.is_banned:
-        redirect_to_logout = True
+    # Refresh user state and check if user was banned after fame adjustments
+    user.refresh_from_db()
+    redirect_to_logout = not user.is_active
 
     post.save()
 
