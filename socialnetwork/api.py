@@ -126,6 +126,7 @@ def adjust_fame_profile(user, expertise_area, truth_rating):
             ).order_by("-numeric_value").first()
 
             if lower_fame_level:
+                # Will this ever happen (we can go from -inf to +inf)?)
                 fame_entry.fame_level = lower_fame_level
                 fame_entry.save()
             else:
@@ -185,12 +186,14 @@ def submit_post(
     post.published = not _at_least_one_expertise_area_contains_bullshit
     
     # T1: Check if post should be published based on user's fame profile
+    # to improve
     if post.published:  # Only check fame if content is not bullshit
+        
         for epa in _expertise_areas:
             if not should_publish_post(user, epa["expertise_area"]):
                 post.published = False
                 break
-
+    #same (opti)
     # T2: Adjust fame profile based on truth ratings
     for epa in _expertise_areas:
         adjust_fame_profile(user, epa["expertise_area"], epa["truth_rating"])
