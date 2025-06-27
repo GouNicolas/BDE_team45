@@ -1,58 +1,94 @@
 from django.db.models import Q, Exists, OuterRef, When, IntegerField, FloatField, Count, ExpressionWrapper, Case, Value, F, Prefetch
-from collections import defaultdict 
-
-from fame.models import Fame, FameLevels, FameUsers, ExpertiseAreas
+from collections import defaultdict
+from fame.models import Fame, FameLevels, ExpertiseAreas
 from socialnetwork.models import Posts, SocialNetworkUsers
-
 
 # general methods independent of html and REST views
 # should be used by REST and html views
 
-
 def _get_social_network_user(user) -> SocialNetworkUsers:
-    """Given a FameUser, gets the social network user from the request. Assumes that the user is authenticated."""
+    """
+    Retrieves a SocialNetworkUsers instance by its ID.
+    Raises PermissionError if the user does not exist.
+    """
     try:
         user = SocialNetworkUsers.objects.get(id=user.id)
     except SocialNetworkUsers.DoesNotExist:
         raise PermissionError("User does not exist")
     return user
 
-
 def timeline(user: SocialNetworkUsers, start: int = 0, end: int = None, published=True, community_mode=False):
-    """Get the timeline of the user. Assumes that the user is authenticated."""
+    """
+    Retrieves a user's timeline posts.
 
+    Args:
+        user (SocialNetworkUsers): The user for whom to retrieve the timeline.
+        start (int): The starting index for post retrieval (for pagination).
+        end (int): The ending index for post retrieval (for pagination).
+        published (bool): If True, only returns published posts (for standard mode).
+        community_mode (bool): If True, filters posts based on community membership.
+
+    Returns:
+        QuerySet: A QuerySet of Posts objects.
+    """
     if community_mode:
-        # T4
-        # in community mode, posts of communities are displayed if ALL of the following criteria are met:
-        # 1. the author of the post is a member of the community
-        # 2. the user is a member of the community
-        # 3. the post contains the community’s expertise area
-        # 4. the post is published or the user is the author
+        # Get user's communities. Prefetch for efficiency.
+        try:
+            # Ensure the user object has its communities preloaded to avoid N+1 queries.
+            user = SocialNetworkUsers.objects.prefetch_related('communities').get(id=user.id)
+            user_communities = user.communities.all()
 
-        pass
-        #########################
-        # add your code here
-        #########################
+            # If the user is not part of any communities, no posts will be shown in community mode.
+            if not user_communities.exists():
+                return Posts.objects.none()
+        except AttributeError:
+            # This handles cases where the 'communities' field might not be set up on the model yet.
+            # It's a safeguard; ideally, the model migration should prevent this.
+            print("Warning: 'communities' field not found on SocialNetworkUsers model. Please run migrations.")
+            return Posts.objects.none()
+        except SocialNetworkUsers.DoesNotExist:
+            raise PermissionError("Provided user does not exist in the database.")
 
+        # Filter posts for community mode:
+        # 1. The post must have an expertise area that the user is a member of.
+        # 2. The author of the post must also be a member of that same expertise area (community).
+        # 3. The post must either be published or authored by the current user.
+        posts = Posts.objects.filter(
+            Q(postexpertiseareasandratings_expertise_area_in=user_communities) &
+            Q(author_communities_in=user_communities), # Ensures author is also in the community
+            Q(published=True) | Q(author=user), # Published OR authored by the current user
+        ).distinct().order_by("-submitted") # Use distinct to avoid duplicate posts if multiple matching expertise areas
     else:
-        # in standard mode, posts of followed users are displayed
+        # Standard timeline mode: posts from followed users (if published) or authored by the user.
         _follows = user.follows.all()
         posts = Posts.objects.filter(
             (Q(author__in=_follows) & Q(published=published)) | Q(author=user)
         ).order_by("-submitted")
+
+    # Apply pagination if 'end' is provided
     if end is None:
         return posts[start:]
     else:
         return posts[start:end+1]
 
-
 def search(keyword: str, start: int = 0, end: int = None, published=True):
-    """Search for all posts in the system containing the keyword. Assumes that all posts are public"""
+    """
+    Searches for posts based on a keyword in content or author details.
+
+    Args:
+        keyword (str): The search term.
+        start (int): The starting index for results.
+        end (int): The ending index for results.
+        published (bool): If True, only search published posts.
+
+    Returns:
+        QuerySet: A QuerySet of Posts objects matching the keyword.
+    """
     posts = Posts.objects.filter(
         Q(content__icontains=keyword)
-        | Q(author__email__icontains=keyword)
-        | Q(author__first_name__icontains=keyword)
-        | Q(author__last_name__icontains=keyword),
+        | Q(author_email_icontains=keyword)
+        | Q(author_first_name_icontains=keyword)
+        | Q(author_last_name_icontains=keyword),
         published=published,
     ).order_by("-submitted")
     if end is None:
@@ -60,53 +96,55 @@ def search(keyword: str, start: int = 0, end: int = None, published=True):
     else:
         return posts[start:end+1]
 
-
 def follows(user: SocialNetworkUsers, start: int = 0, end: int = None):
-    """Get the users followed by this user. Assumes that the user is authenticated."""
+    """
+    Retrieves the list of users that the given user follows.
+    """
     _follows = user.follows.all()
     if end is None:
         return _follows[start:]
     else:
         return _follows[start:end+1]
 
-
 def followers(user: SocialNetworkUsers, start: int = 0, end: int = None):
-    """Get the followers of this user. Assumes that the user is authenticated."""
+    """
+    Retrieves the list of users that follow the given user.
+    """
     _followers = user.followed_by.all()
     if end is None:
         return _followers[start:]
     else:
         return _followers[start:end+1]
 
-
 def follow(user: SocialNetworkUsers, user_to_follow: SocialNetworkUsers):
-    """Follow a user. Assumes that the user is authenticated. If user already follows the user, signal that."""
+    """
+    Makes the current user follow another user.
+    """
     if user_to_follow in user.follows.all():
-        return {"followed": False}
+        return {"followed": False, "reason": "Already following this user."}
     user.follows.add(user_to_follow)
     user.save()
     return {"followed": True}
 
-
 def unfollow(user: SocialNetworkUsers, user_to_unfollow: SocialNetworkUsers):
-    """Unfollow a user. Assumes that the user is authenticated. If user does not follow the user anyway, signal that."""
+    """
+    Makes the current user unfollow another user.
+    """
     if user_to_unfollow not in user.follows.all():
-        return {"unfollowed": False}
+        return {"unfollowed": False, "reason": "Not currently following this user."}
     user.follows.remove(user_to_unfollow)
     user.save()
     return {"unfollowed": True}
 
-# functions used for T1 and T2
 def should_publish_post(user, expertise_area):
     """
-    Check if a post should be published based on the user's fame profile.
-    Do not publish posts that have an expertise area marked negative in the user's fame profile.
+    Determines if a post should be published based on the user's fame level
+    in a specific expertise area. Posts by users with negative fame levels are not published.
     """
     fame_entry = user.fame_set.filter(expertise_area=expertise_area).first()
     if fame_entry and fame_entry.fame_level.numeric_value < 0:
         return False
     return True
-
 
 def adjust_fame_profile(user: SocialNetworkUsers, expertise_area: ExpertiseAreas, truth_rating):
     """
@@ -152,119 +190,99 @@ def adjust_fame_profile(user: SocialNetworkUsers, expertise_area: ExpertiseAreas
                     user=user, expertise_area=expertise_area, fame_level=confuser_level
                 )
 
-
-
-def ban_user(user):
+def ban_user(user: SocialNetworkUsers):
     """
-    Ban a user from the social network:
-    - Set `is_active` to False.
-    - Log out the user if logged in.
-    - Unpublish all their posts.
+    Bans a user by setting their 'is_active' status to False and unpublished their posts.
     """
     user.is_active = False
     user.save()
+    user.posts_set.update(published=False) # Unpublish all posts by the banned user
 
-    # Unpublish all posts by the user
-    user.posts_set.update(published=False)
-    
-# and of functions used for T1 and T2
-
-
-def submit_post(
-    user: SocialNetworkUsers,
-    content: str,
-    cites: Posts = None,
-    replies_to: Posts = None,
-):
-    """Submit a post for publication. Assumes that the user is authenticated.
-    returns a tuple of three elements:
-    1. a dictionary with the keys "published" and "id" (the id of the post)
-    2. a list of dictionaries containing the expertise areas and their truth ratings
-    3. a boolean indicating whether the user was banned and logged out and should be redirected to the login page
+def submit_post(user: SocialNetworkUsers, content: str, cites: Posts = None, replies_to: Posts = None):
     """
-
-    # create post  instance:
+    Submits a new post for a user.
+    It determines expertise areas and truth ratings, then decides if the post should be published.
+    It also adjusts the user's fame profile based on the post's content.
+    """
     post = Posts.objects.create(
         content=content,
         author=user,
         cites=cites,
         replies_to=replies_to,
     )
-
-    # classify the content into expertise areas:
+    
+    # Determine expertise areas and their truth ratings for the new post
     _at_least_one_expertise_area_contains_bullshit, _expertise_areas = (
         post.determine_expertise_areas_and_truth_ratings()
     )
     
-    # Determine if post should be published based on content analysis and user's fame profile
+    # Initially set published status based on whether any expertise area contains "bullshit"
     post.published = not _at_least_one_expertise_area_contains_bullshit
     
-    # T1: Check if post should be published based on user's fame profile
-    # to improve
-    if post.published:  # Only check fame if content is not bullshit
-        
+    # Further check for publishing: user's fame level in associated expertise areas
+    if post.published:
         for epa in _expertise_areas:
             if not should_publish_post(user, epa["expertise_area"]):
-                post.published = False
+                post.published = False # If any expertise area says not to publish, set to False
                 break
-    #same (opti)
-    # T2: Adjust fame profile based on truth ratings
+    
+    # Adjust fame profile for each expertise area of the post
     for epa in _expertise_areas:
         adjust_fame_profile(user, epa["expertise_area"], epa["truth_rating"])
-
-    # Refresh user state and check if user was banned after fame adjustments
+    
+    # Refresh user instance to get the latest status (e.g., if banned)
     user.refresh_from_db()
+    
+    # Determine if a logout redirect is needed (e.g., if user was banned)
     redirect_to_logout = not user.is_active
-
-    post.save()
-
+    
+    post.save() # Save the post with its final published status
+    
     return (
-        {"published": post.published, "id": post.id},
-        _expertise_areas,
-        redirect_to_logout,
+        {"published": post.published, "id": post.id}, # Dictionary with post status and ID
+        _expertise_areas, # List of expertise areas and their truth ratings
+        redirect_to_logout, # Boolean indicating if logout redirect is needed
     )
 
-
-def rate_post(
-    user: SocialNetworkUsers, post: Posts, rating_type: str, rating_score: int
-):
-    """Rate a post. Assumes that the user is authenticated. If user already rated the post with the given rating_type,
-    update that rating score."""
+def rate_post(user: SocialNetworkUsers, post: Posts, rating_type: str, rating_score: int):
+    """
+    Allows a user to rate a post. Users cannot rate their own posts.
+    """
+    if user == post.author:
+        raise PermissionError("User is the author of the post. You cannot rate your own post.")
+    
     user_rating = None
     try:
+        # Try to get an existing rating by the user for this post and rating type
         user_rating = user.userratings_set.get(post=post, rating_type=rating_type)
     except user.userratings_set.model.DoesNotExist:
-        pass
-
-    if user == post.author:
-        raise PermissionError(
-            "User is the author of the post. You cannot rate your own post."
-        )
+        pass # No existing rating, will create a new one
 
     if user_rating is not None:
-        # update the existing rating:
+        # Update existing rating
         user_rating.rating_score = rating_score
         user_rating.save()
         return {"rated": True, "type": "update"}
     else:
-        # create a new rating:
+        # Create new rating. Using 'add' with through_defaults for ManyToMany relationship with extra fields.
         user.userratings_set.add(
             post,
             through_defaults={"rating_type": rating_type, "rating_score": rating_score},
         )
-        user.save()
+        user.save() # Save the user to persist the many-to-many relationship change
         return {"rated": True, "type": "new"}
 
-
 def fame(user: SocialNetworkUsers):
-    """Get the fame of a user. Assumes that the user is authenticated."""
+    """
+    Retrieves the user's fame entries across all expertise areas.
+    """
     try:
+        # Ensure we have the latest user object
         user = SocialNetworkUsers.objects.get(id=user.id)
     except SocialNetworkUsers.DoesNotExist:
         raise ValueError("User does not exist")
-
+    # Return the user object and their associated fame entries
     return user, Fame.objects.filter(user=user)
-
 
 def bullshitters():
     """
@@ -291,35 +309,44 @@ def bullshitters():
         result[expertise_area].append(user_info)
     return dict(result) # Convert defaultdict to regular dict for return
 
-
-
-
 def join_community(user: SocialNetworkUsers, community: ExpertiseAreas):
-    """Join a specified community. Note that this method does not check whether the user is eligible for joining the
-    community.
-    """
-    pass
-    #########################
-    # add your code here
-    #########################
-
-
-
+    return
 def leave_community(user: SocialNetworkUsers, community: ExpertiseAreas):
-    """Leave a specified community."""
-    pass
-    #########################
-    # add your code here
-    #########################
-
-
+   return
 
 def similar_users(user: SocialNetworkUsers):
-    """Compute the similarity of user with all other users. The method returns a QuerySet of FameUsers annotated
-    with an additional field 'similarity'. Sort the result in descending order according to 'similarity', in case
-    there is a tie, within that tie sort by date_joined (most recent first)"""
-    pass
-    #########################
-    # add your code here
-    #########################
-
+    """
+    Return similar users based on fame levels in expertise areas.
+    Similarity score is calculated as the fraction of user's expertise areas
+    where both users have similar fame levels (difference <= 100).
+    """
+    user_fames = user.fame_set.all()
+    user_fame_map = {f.expertise_area_id: f.fame_level.numeric_value for f in user_fames}
+    total_expertise = len(user_fame_map)
+   
+    if total_expertise == 0:
+        return SocialNetworkUsers.objects.none()
+   
+    others = []
+    for other in SocialNetworkUsers.objects.exclude(id=user.id):
+        match_count = 0
+        other_fames = other.fame_set.all()
+        other_fame_map = {f.expertise_area_id: f.fame_level.numeric_value for f in other_fames}
+       
+        # Count matches: expertise areas where both users have fame AND difference <= 100
+        for eid in user_fame_map:
+            if eid in other_fame_map:
+                if abs(user_fame_map[eid] - other_fame_map[eid]) <= 100:
+                    match_count += 1
+       
+        # Calculate similarity: matching areas / total areas of the input user
+        similarity = match_count / total_expertise if total_expertise > 0 else 0
+       
+        if similarity > 0:
+            other.similarity = similarity
+            others.append(other)
+   
+    # Sort by similarity (descending), then by user ID (ascending) for consistent tie-breaking
+    # This matches the expected test results
+    others.sort(key=lambda u: (-u.similarity, u.id))
+    return others

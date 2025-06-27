@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.db.models import F
 import random as rnd
+from collections import defaultdict  # Ensure defaultdict is imported
 
 from socialnetwork import api
 
@@ -387,7 +388,7 @@ class StudentTasksTests(TestCase):
             fame_level_numeric = fame_entry.fame_level.numeric_value
             self.assertTrue((user, ea, fame_level_numeric) in test_set)
 
-    def arttest_T3(self):  # implemented and tested
+    def test_T3(self):  # implemented and tested
         # implement api.bullshitters: It should return for each existing expertise area in the fame profiles a list
         # of the users having negative fame for that expertise area, the list should be ranked, i.e. users with the
         # lowest fame are shown first, in case there is a tie, within that tie sort by date_joined (most recent first)
@@ -509,7 +510,7 @@ class StudentTasksTests(TestCase):
         # assert that the user is no longer member of the community
         self.assertTrue(community not in user.communities.all())
 
-    def arttest_T5_1(self):
+    def test_T5_1(self):
         # Implement api.similar_users: It should return for a given user u_i the list of similar users. This list should
         # only contain other users with a non-zero similarity score and should be in descending order
         # according to their similarity score.
