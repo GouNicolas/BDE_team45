@@ -17,6 +17,7 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import RedirectView
 
 from famesocialnetwork.views.html import home, MyLogoutView, MyLoginView
 
@@ -42,4 +43,9 @@ urlpatterns = [
     path(
         "sn/", include("socialnetwork.urls", namespace="sn")
     ),  # reroute to social network app
+    # Add redirects for accounts/login to the main login page
+    path('accounts/login/', RedirectView.as_view(url='/', query_string=True), name='account_login'),
+    
+    # Add redirect for /bullshitters to the correct path
+    path('bullshitters', RedirectView.as_view(url='/sn/html/bullshitters'), name='bullshitters_redirect'),
 ]
