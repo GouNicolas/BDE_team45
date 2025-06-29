@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram name="Page-1" id="MQpNgLz8ZXVfiLkk2540">
-        <mxGraphModel dx="2504" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="1903" dy="825" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -103,7 +103,7 @@
                 <mxCell id="4g2gMuMm-FKann9IZiOH-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;curved=1;strokeColor=#66CC00;" parent="1" source="rekhB66va6viN4RXd3Ok-121" target="rekhB66va6viN4RXd3Ok-109" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="4g2gMuMm-FKann9IZiOH-90" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;elbow=vertical;strokeColor=#4CFF70;" parent="1" source="rekhB66va6viN4RXd3Ok-221" target="rekhB66va6viN4RXd3Ok-215" edge="1">
+                <mxCell id="4g2gMuMm-FKann9IZiOH-90" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;elbow=vertical;strokeColor=#009900;fillColor=#009900;shadow=1;" parent="1" source="rekhB66va6viN4RXd3Ok-221" target="rekhB66va6viN4RXd3Ok-215" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="4g2gMuMm-FKann9IZiOH-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;curved=1;strokeColor=#66CC00;" parent="1" source="rekhB66va6viN4RXd3Ok-124" target="rekhB66va6viN4RXd3Ok-109" edge="1">
@@ -236,7 +236,7 @@
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="rekhB66va6viN4RXd3Ok-184" value="&quot;fame_levels&quot;" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fixedRows=1;rowLines=0;fontStyle=1;align=center;resizeLast=1;" parent="1" vertex="1">
-                    <mxGeometry x="-320" y="860" width="280" height="120" as="geometry">
+                    <mxGeometry x="80" y="920" width="280" height="120" as="geometry">
                         <mxRectangle x="440" y="660" width="110" height="30" as="alternateBounds"/>
                     </mxGeometry>
                 </mxCell>
@@ -464,7 +464,7 @@
                         <mxRectangle width="530" height="30" as="alternateBounds"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="rekhB66va6viN4RXd3Ok-237" value="&quot;fame_users&quot;" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fixedRows=1;rowLines=0;fontStyle=1;align=center;resizeLast=1;" parent="1" vertex="1">
+                <mxCell id="rekhB66va6viN4RXd3Ok-237" value="&quot;fame_users&quot;" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fixedRows=1;rowLines=0;fontStyle=1;align=center;resizeLast=1;fillColor=#FF0A0A;" parent="1" vertex="1">
                     <mxGeometry x="780" y="570" width="280" height="330" as="geometry">
                         <mxRectangle x="950" y="530" width="110" height="30" as="alternateBounds"/>
                     </mxGeometry>
@@ -1149,7 +1149,7 @@
                 <mxCell id="4g2gMuMm-FKann9IZiOH-81" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;elbow=vertical;" parent="1" source="rekhB66va6viN4RXd3Ok-323" target="rekhB66va6viN4RXd3Ok-304" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="4g2gMuMm-FKann9IZiOH-83" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;elbow=vertical;" parent="1" source="rekhB66va6viN4RXd3Ok-234" target="rekhB66va6viN4RXd3Ok-185" edge="1">
+                <mxCell id="4g2gMuMm-FKann9IZiOH-83" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;elbow=vertical;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="rekhB66va6viN4RXd3Ok-234" target="rekhB66va6viN4RXd3Ok-185" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="4g2gMuMm-FKann9IZiOH-84" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;elbow=vertical;" parent="1" source="rekhB66va6viN4RXd3Ok-317" target="rekhB66va6viN4RXd3Ok-215" edge="1">
@@ -1174,7 +1174,7 @@
                 <mxCell id="4g2gMuMm-FKann9IZiOH-88" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;elbow=vertical;" parent="1" source="rekhB66va6viN4RXd3Ok-231" target="rekhB66va6viN4RXd3Ok-238" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="2" value="Text" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                <mxCell id="2" value="Text" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
                     <mxGeometry x="250" y="700" width="50" height="30" as="geometry"/>
                 </mxCell>
             </root>

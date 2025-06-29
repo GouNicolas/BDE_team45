@@ -396,7 +396,7 @@ class StudentTasksTests(TestCase):
         filter_conditions = {"fame_level__numeric_value__lt": 0}
         self._test_containment(api.bullshitters(), filter_conditions, reverse=False)
 
-    def arttest_T4a(self):
+    def test_T4a(self):
         # Implement api.join_community, which adds a given user to a given community.
 
         # pick a random community
@@ -421,7 +421,7 @@ class StudentTasksTests(TestCase):
         # verify that the user has joined the community
         self.assertTrue(community in user.communities.all())
 
-    def arttest_T4b(self):
+    def test_T4b(self):
         # Implement api.leave_community, which removes a given user from a given community.
 
         # pick a random user that is member of at least one community
@@ -451,7 +451,7 @@ class StudentTasksTests(TestCase):
         # verify that post is either published or the author is the user himself
         return exists_valid_community and (post.published or author == user)
 
-    def arttest_T4c_1(self):
+    def test_T4c_1(self):
         # Change api.timeline to return all posts to be displayed when in community mode.
         # Scenario: user is member of at least one community
 
@@ -471,7 +471,7 @@ class StudentTasksTests(TestCase):
         for post in non_displayed_posts:
             self.assertFalse(self._should_be_displayed_in_community_mode(user, post))
 
-    def arttest_T4c_2(self):
+    def test_T4c_2(self):
         # Change api.timeline to return all posts to be displayed when in community mode.
         # Scenario: user is not member of any one community
 
@@ -484,7 +484,7 @@ class StudentTasksTests(TestCase):
         # verify that no posts are displayed for this user
         self.assertFalse(displayed_posts.exists())
 
-    def arttest_T4d(self):
+    def test_T4d(self):
         # Change api.submit_post to automatically remove a user from a community if the fame level for the
         # expertise area of this community drops below Super Pro.
 

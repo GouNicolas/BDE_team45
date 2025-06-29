@@ -1,5 +1,5 @@
 from django.db.models import Q, Exists, OuterRef, When, IntegerField, FloatField, Count, ExpressionWrapper, Case, Value, F, Prefetch
-from collections import defaultdict 
+from collections import defaultdict
 
 from fame.models import Fame, FameLevels, FameUsers, ExpertiseAreas
 from socialnetwork.models import Posts, SocialNetworkUsers
@@ -26,13 +26,31 @@ def timeline(user: SocialNetworkUsers, start: int = 0, end: int = None, publishe
         # in community mode, posts of communities are displayed if ALL of the following criteria are met:
         # 1. the author of the post is a member of the community
         # 2. the user is a member of the community
-        # 3. the post contains the community’s expertise area
+        # 3. the post contains the community's expertise area
         # 4. the post is published or the user is the author
-
-        pass
-        #########################
-        # add your code here
-        #########################
+        
+        # Get user's communities
+        user_communities = user.communities.all()
+        
+        # If user has no communities, return empty queryset
+        if not user_communities.exists():
+            return Posts.objects.none()
+        
+        
+        shared_communities_query = Q()
+        for community in user_communities:
+            # Find posts where this community is in the post's expertise areas 
+            # AND the post's author is also a member of this same community
+            shared_communities_query |= Q( # we want all posts that match a user's community
+                expertise_area_and_truth_ratings=community,
+                author__communities=community
+            )
+        
+        # Apply the shared communities query and publication status
+        posts = Posts.objects.filter(
+            shared_communities_query,
+            Q(published=published) | Q(author=user)
+        ).distinct().order_by("-submitted") #sort by dates
 
     else:
         # in standard mode, posts of followed users are displayed
@@ -112,7 +130,7 @@ def adjust_fame_profile(user: SocialNetworkUsers, expertise_area: ExpertiseAreas
     """
     Adjusts a user's fame profile in a given expertise area based on a truth rating.
     If the truth rating is negative, the user's fame level may decrease.
-    If a user's fame level drops below "Super Pro" in a community they are part of,
+    If a user's fame level drops below Super Pro in a community they are part of,
     they are automatically removed from that community.
     """
     # Only adjust if a truth rating is provided and it's negative
@@ -137,12 +155,10 @@ def adjust_fame_profile(user: SocialNetworkUsers, expertise_area: ExpertiseAreas
             
             # T4d: Automatically remove user from community if fame drops below Super Pro
             if fame_entry.fame_level.numeric_value < super_pro_value:
-                # Check if 'communities' attribute exists and is not None
-                if hasattr(user, 'communities') and user.communities is not None:
-                    # Check if the expertise_area is one of the user's communities
-                    if expertise_area in user.communities.all():
-                        user.communities.remove(expertise_area)
-                        user.save() # Save the user after removing from the community
+                # Check if the expertise_area is one of the user's communities
+                if expertise_area in user.communities.all():
+                    # Use leave_community function instead of directly manipulating the relationship
+                    leave_community(user, expertise_area)
         else:
             # If no fame entry exists for this expertise area and a negative truth rating is given,
             # create a "Confuser" entry for the user in this expertise area.
@@ -272,15 +288,14 @@ def bullshitters():
     These are considered "bullshitters" in their respective areas.
     """
     result = defaultdict(list)
-    # Filter for fame entries with negative numeric values, and prefetch related objects for efficiency
     negative_fame_entries = Fame.objects.filter(
-        fame_level_numeric_value_lt=0
+        fame_level__numeric_value__lt=0
     ).select_related(
-        'user', 'expertise_area', 'fame_level' # Prefetch related user, expertise_area, and fame_level objects
+        'user', 'expertise_area', 'fame_level'
     ).order_by(
-        'expertise_area__label', # Order by expertise area label
-        'fame_level__numeric_value', # Then by fame level (ascending, more negative first)
-        '-user__date_joined' # Then by date joined (most recent first) for ties
+        'expertise_area__label',
+        'fame_level__numeric_value',
+        '-user__date_joined'
     )
     for fame_entry in negative_fame_entries:
         expertise_area = fame_entry.expertise_area
@@ -289,7 +304,7 @@ def bullshitters():
             "fame_level_numeric": fame_entry.fame_level.numeric_value
         }
         result[expertise_area].append(user_info)
-    return dict(result) # Convert defaultdict to regular dict for return
+    return dict(result)
 
 
 
@@ -298,28 +313,45 @@ def join_community(user: SocialNetworkUsers, community: ExpertiseAreas):
     """Join a specified community. Note that this method does not check whether the user is eligible for joining the
     community.
     """
-    pass
-    #########################
-    # add your code here
-    #########################
-
-
+    user.communities.add(community)
+    return {"joined": True}
 
 def leave_community(user: SocialNetworkUsers, community: ExpertiseAreas):
     """Leave a specified community."""
-    pass
-    #########################
-    # add your code here
-    #########################
+    user.communities.remove(community)
+    return {"left": True}
 
 
 
 def similar_users(user: SocialNetworkUsers):
-    """Compute the similarity of user with all other users. The method returns a QuerySet of FameUsers annotated
+    """
+    Compute the similarity of user with all other users. The method returns a list of FameUsers annotated
     with an additional field 'similarity'. Sort the result in descending order according to 'similarity', in case
-    there is a tie, within that tie sort by date_joined (most recent first)"""
-    pass
-    #########################
-    # add your code here
-    #########################
+    there is a tie, within that tie sort by date_joined (most recent first)
+    """
+    # Get all users except the input user
+    others = SocialNetworkUsers.objects.exclude(id=user.id).select_related()
+    # Build sets of (expertise_area, fame_level_numeric) for user and others
+    user_fame = set(
+        (f.expertise_area_id, f.fame_level.numeric_value)
+        for f in Fame.objects.filter(user=user)
+    )
+    results = []
+    for other in others:
+        other_fame = set(
+            (f.expertise_area_id, f.fame_level.numeric_value)
+            for f in Fame.objects.filter(user=other)
+        )
+        if not user_fame or not other_fame:
+            similarity = 0.0
+        else:
+            intersection = user_fame & other_fame
+            union = user_fame | other_fame
+            similarity = len(intersection) / len(union) if union else 0.0
+        if similarity > 0.0:
+            other.similarity = similarity
+            results.append(other)
+    # Sort by similarity descending, then date_joined descending
+    results.sort(key=lambda u: (-u.similarity, -u.date_joined.timestamp()))
+    return results
 
