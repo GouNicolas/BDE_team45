@@ -1,0 +1,186 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Similar Users</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border: 1px solid #ddd;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+
+        .current-user {
+            background-color: #e8f4f8;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #bee5eb;
+        }
+
+        .user-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: white;
+        }
+
+        .user-header {
+            margin-bottom: 10px;
+        }
+
+        .user-name {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .username {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .similarity {
+            float: right;
+            background-color: #d4edda;
+            padding: 3px 8px;
+            border: 1px solid #c3e6cb;
+            font-size: 0.9em;
+        }
+
+        .user-details {
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
+        .detail-row {
+            margin: 5px 0;
+        }
+
+        .detail-label {
+            font-weight: bold;
+            display: inline-block;
+            width: 80px;
+        }
+
+        .expertise {
+            margin-top: 10px;
+        }
+
+        .expertise-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .expertise-item {
+            background-color: #f8f9fa;
+            padding: 3px 8px;
+            margin: 2px;
+            display: inline-block;
+            border: 1px solid #e9ecef;
+            font-size: 0.85em;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border: 1px solid #f5c6cb;
+            margin: 10px 0;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{% url 'sn:timeline' %}" class="back-link">← Back to Timeline</a>
+        
+        <div class="header">
+            <h1>Similar Users</h1>
+            <p>Users with similar expertise and interests</p>
+        </div>
+
+        <div class="current-user">
+            <strong>Finding similar users for:</strong>
+            {{ current_user.first_name }} {{ current_user.last_name }} (@{{ current_user.username }})
+        </div>
+
+        {% if error %}
+            <div class="error">
+                {{ error }}
+            </div>
+        {% endif %}
+
+        {% if has_results %}
+            {% for user in similar_users %}
+                <div class="user-card">
+                    <div class="user-header">
+                        <span class="similarity">{{ user.similarity|floatformat:1 }}% similar</span>
+                        <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
+                        <div class="username">@{{ user.username }}</div>
+                    </div>
+                    <div class="user-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Email:</span>
+                            {{ user.email }}
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Joined:</span>
+                            {{ user.date_joined|date:"M d, Y" }}
+                        </div>
+                    </div>
+                    <div class="expertise">
+                        <div class="expertise-title">Expertise Areas:</div>
+                        {% for fame in user.fame_set.all %}
+                            <span class="expertise-item">
+                                {{ fame.expertise_area.label }} ({{ fame.fame_level.name }})
+                            </span>
+                        {% empty %}
+                            <span class="expertise-item">No expertise areas</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            {% if not error %}
+                <div class="no-results">
+                    <h3>No similar users found</h3>
+                    <p>No users with similar expertise were found.</p>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</body>
+</html>

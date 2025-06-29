@@ -113,4 +113,16 @@ def leave_community(request):
 @require_http_methods(["GET"])
 @login_required
 def similar_users(request):
-    raise NotImplementedError("Not implemented yet")
+    """
+    Display users that are similar to the current user based on expertise areas.
+    """
+    user = _get_social_network_user(request.user)
+    similar = api.similar_users(user)
+    
+    context = {
+        "similar_users": similar,
+        "current_user": user,
+        "has_results": len(similar) > 0
+    }
+    
+    return render(request, "similar_users.html", context)
