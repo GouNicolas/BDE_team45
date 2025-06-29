@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{#
+    Template: bullshitters.html
+    Purpose: Display users with negative fame ("bullshitters") grouped by expertise area.
+    Context variables:
+        - bullshitters_by_area: list of (expertise_area, entries) tuples
+#}
+
+{% block title %}Bullshitters by Expertise Area{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <h2>Bullshitters by Expertise Area</h2>
+    {# Check if there are any expertise areas with bullshitters #}
+    {% if bullshitters_by_area %}
+        {% for area, entries in bullshitters_by_area %}
+            <div class="card my-4">
+                <div class="card-header">
+                    <strong>{{ area }}</strong> {# Display the expertise area name #}
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Fame Level (Numeric)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {# List all users with negative fame for this expertise area #}
+                            {% for entry in entries %}
+                                <tr>
+                                    <td>{{ entry.user }}</td> {# Display the user's name or identifier #}
+                                    <td>{{ entry.fame_level_numeric }}</td> {# Display the user's negative fame level #}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No bullshitters found in any expertise area.</p>
+    {% endif %}
+</div>
+{% endblock %} 

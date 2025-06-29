@@ -71,10 +71,29 @@ def unfollow(request):
     return redirect(reverse("sn:timeline"))
 
 
+
+
+#Task 6 Starts here, HTML VIEW OF BULLSHITTERS.API
+
+
+
+
 @require_http_methods(["GET"])
 @login_required
 def bullshitters(request):
-    raise NotImplementedError("Not implemented yet")
+    # Call the API to get a dictionary mapping expertise areas to lists of users with negative fame
+    bs_data = api.bullshitters()
+    # Sort the expertise areas alphabetically for a consistent display order
+    sorted_expertise_areas = sorted(bs_data.keys(), key=lambda ea: str(ea))
+    # Prepare the context for the template, including the sorted areas and the mapping
+    bullshitters_by_area = [(area, bs_data[area]) for area in sorted_expertise_areas]
+    context = {
+        "bullshitters_by_area": bullshitters_by_area,  # List of (expertise_area, entries) tuples
+    }
+    # Render the bullshitters.html template with the context data
+    return render(request, "bullshitters.html", context)
+
+
 
 @require_http_methods(["POST"])
 @login_required
